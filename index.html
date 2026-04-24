@@ -1103,6 +1103,27 @@
         });
 
         L.control.scale({imperial: false}).addTo(map);
+
+        // 给路线卡片的起点和终点添加点击复制功能
+        document.querySelectorAll('#routeCardStart, #routeCardEnd').forEach(span => {
+            span.style.cursor = 'pointer';
+            span.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                try {
+                    const textToCopy = this.innerText.replace(/^起点：|^终点：/, '');
+                    navigator.clipboard.writeText(textToCopy).then(() => {
+                        const toast = document.getElementById('copyToast');
+                        toast.innerText = `已复制: ${textToCopy}`;
+                        toast.classList.add('show');
+                        setTimeout(() => toast.classList.remove('show'), 2000);
+                    }).catch(err => console.log('复制失败:', err));
+                } catch (err) {
+                    console.log('当前环境不支持剪贴板API');
+                }
+            });
+        });
     </script>
 </body>
 </html>
