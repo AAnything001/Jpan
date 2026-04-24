@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日本关西关东十日游行程计划 - 定制路线</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Helvetica Neue', Arial, 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; }
+        :root { --primary-color: #d94f45; --secondary-color: #f07b55; --accent-color: #2f9c95; --ink: #1f2937; --text-dark: #2f3b4a; --text-light: #7c8794; --line-color: #e7edf3; --bg-light: #f4f7fa; --panel-bg: #ffffff; --soft-accent: #fff4ef; --card-shadow: 0 8px 20px rgba(31,41,55,0.08); --hover-shadow: 0 12px 28px rgba(31,41,55,0.12); }
+        body { background-color: var(--bg-light); color: var(--text-dark); line-height: 1.6; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c8d0dc; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #aaa; }
+        .container { display: flex; height: 100vh; max-width: 100%; }
+        .itinerary-panel { flex: 0 0 45%; background: var(--panel-bg); overflow-y: auto; box-shadow: 5px 0 25px rgba(31,41,55,0.08); z-index: 10; }
+        .panel-content { padding: 30px; }
+        .map-panel { flex: 1; position: relative; }
+        #map { height: 100%; width: 100%; }
+        header { background: linear-gradient(135deg, #c94840 0%, #ef7553 100%); color: white; padding: 36px 0 34px; text-align: center; position: relative; overflow: hidden; }
+        header::before { content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-image: radial-gradient(circle, rgba(255,255,255,0.2) 2px, transparent 2px); background-size: 30px 30px; }
+        .header-content { position: relative; z-index: 1; }
+        h1 { font-size: 2.2rem; margin-bottom: 10px; font-weight: 700; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .subtitle { font-size: 1rem; opacity: 0.95; margin-bottom: 15px; font-weight: 300; }
+        .day-panel { background: #fff; border-bottom: 1px solid var(--line-color); box-shadow: 0 4px 14px -10px rgba(31,41,55,0.28); position: sticky; top: 0; z-index: 20; }
+        .date-nav { display: flex; gap: 8px; overflow-x: auto; padding: 10px 14px; border-bottom: 1px solid var(--line-color); }
+        .date-item { min-width: 92px; padding: 10px 14px; text-align: left; cursor: pointer; border: 1px solid transparent; border-bottom: 3px solid transparent; border-radius: 8px; white-space: nowrap; transition: all 0.2s ease; opacity: 0.72; background: #fff; color: inherit; font: inherit; }
+        .date-item:hover { opacity: 1; background-color: #f8fafc; border-color: var(--line-color); }
+        .date-item:focus-visible { outline: 2px solid var(--primary-color); outline-offset: -4px; }
+        .date-item.active, .date-item[aria-selected="true"] { color: var(--primary-color); border-color: #ffd7c8; border-bottom: 3px solid var(--primary-color); opacity: 1; background: var(--soft-accent); }
+        .date-day { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+        .date-date { display: block; font-weight: 700; margin-top: 5px; font-size: 1.1rem; }
+        .date-city { display: block; margin-top: 2px; color: var(--text-light); font-size: 0.78rem; font-weight: 600; letter-spacing: 0; }
+        .weather-strip { padding: 18px 24px 16px; }
+        .weather-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+        .weather-heading h2 { color: var(--ink); font-size: 1rem; font-weight: 800; letter-spacing: 0; }
+        .weather-source { color: var(--text-light); font-size: 0.78rem; white-space: nowrap; }
+        .weather-cards { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(130px, 1fr); gap: 10px; overflow-x: hidden; padding-bottom: 2px; }
+        .weather-card { min-height: 126px; border: 1px solid var(--line-color); border-radius: 8px; background: #fff; padding: 12px; transition: border-color 0.2s ease, background-color 0.2s ease; }
+        .weather-card:hover { border-color: #ffd7c8; background: var(--soft-accent); }
+        .weather-card.is-loading { color: var(--text-light); }
+        .weather-day-subtitle { display: block; color: var(--text-light); font-size: 0.78rem; font-weight: 700; margin-bottom: 2px; }
+        .weather-date-title { display: block; color: var(--primary-color); font-size: 16px; line-height: 1; font-weight: 800; margin-bottom: 6px; }
+        .weather-place { display: block; color: var(--ink); font-size: 0.92rem; font-weight: 800; margin-bottom: 10px; }
+        .weather-temp { color: var(--primary-color); font-size: 16px; line-height: 1; font-weight: 800; margin-bottom: 6px; }
+        .weather-state { color: var(--text-dark); font-size: 0.84rem; font-weight: 700; margin-bottom: 3px; }
+        .weather-rain { color: var(--text-light); font-size: 0.8rem; }
+        .utility-tabs { display: flex; gap: 10px; padding: 14px 30px 0; background: #fff; }
+        .utility-tabs a { display: inline-flex; align-items: center; min-height: 34px; padding: 6px 12px; border: 1px solid var(--line-color); border-radius: 8px; color: var(--text-dark); background: #fff; text-decoration: none; font-size: 0.88rem; font-weight: 700; }
+        .utility-tabs a:hover { color: var(--primary-color); border-color: #ffd7c8; background: var(--soft-accent); }
+        .day-plan { background-color: #fff; border-radius: 8px; box-shadow: var(--card-shadow); padding: 24px; margin-bottom: 24px; position: relative; overflow: hidden; display: none; border: 1px solid var(--line-color); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .day-plan.active { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .day-plan::before { content: ""; position: absolute; top: 0; left: 0; width: 5px; height: 100%; background: linear-gradient(to bottom, var(--primary-color), var(--secondary-color)); }
+        .day-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--line-color); }
+        .day-title { font-size: 1.4rem; color: var(--text-dark); font-weight: 700; }
+        .day-location { background: var(--soft-accent); color: var(--primary-color); padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; border: 1px solid #ffd7c8; }
+        .day-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0 0 22px; }
+        .summary-pill { border: 1px solid var(--line-color); background: #f8fafc; border-radius: 8px; padding: 9px 11px; min-width: 0; }
+        .summary-label { display: block; color: var(--text-light); font-size: 0.74rem; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 2px; }
+        .summary-value { display: block; color: var(--ink); font-size: 0.92rem; font-weight: 700; overflow-wrap: anywhere; }
+        .time-slot { display: flex; margin-bottom: 18px; align-items: flex-start; position: relative; padding-left: 12px; }
+        .time-slot:last-child { margin-bottom: 0; }
+        .time-slot::before { content: ""; position: absolute; left: 0; top: 8px; bottom: -18px; width: 2px; background: var(--line-color); }
+        .time-slot::after { content: ""; position: absolute; left: -4px; top: 8px; width: 10px; height: 10px; border-radius: 50%; background: var(--primary-color); box-shadow: 0 0 0 4px var(--soft-accent); }
+        .time-slot:last-child::before { bottom: calc(100% - 12px); }
+        .time-period { flex: 0 0 94px; font-weight: 800; color: var(--primary-color); margin-right: 18px; font-size: 0.86rem; text-align: right; padding-top: 2px; }
+        .activity { flex: 1; background: #fff; border: 1px solid var(--line-color); border-radius: 8px; padding: 13px 15px; min-width: 0; }
+        .activity-title { font-weight: 700; margin-bottom: 8px; color: var(--text-dark); font-size: 1.1rem; }
+        .activity-desc { color: #666; font-size: 0.95rem; line-height: 1.7; }
+        .location-link { color: var(--primary-color); text-decoration: none; border-bottom: 1px dashed rgba(255, 107, 107, 0.4); cursor: pointer; transition: all 0.2s; font-weight: 600; position: relative; padding-bottom: 1px; }
+        .location-link:hover { color: #ff4757; border-bottom: 1px solid #ff4757; }
+        .nav-link { display: inline-flex; align-items: center; justify-content: center; color: #fff; background-color: var(--primary-color); text-decoration: none; padding: 3px 9px; border-radius: 6px; font-size: 0.8rem; margin-left: 8px; transition: background-color 0.2s; vertical-align: middle; font-weight: 700; }
+        .nav-link:hover { background-color: #bf4038; }
+        .route-btn { display: inline-block; margin-top: 10px; padding: 7px 12px; background-color: #fff; border: 1px solid var(--primary-color); color: var(--primary-color); border-radius: 6px; text-decoration: none; font-size: 0.85rem; font-weight: 700; transition: all 0.2s; cursor: pointer; }
+        .route-btn:hover { background-color: var(--primary-color); color: #fff; }
+        
+        /* 复制提示 */
+        .copy-toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.8); color: white; padding: 10px 20px; border-radius: 6px; font-size: 0.9rem; z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        .copy-toast.show { opacity: 1; }
+        
+        .budget-section { margin-top: 40px; border-top: 2px dashed #eee; padding-top: 30px; padding-bottom: 30px;}
+        .budget-title { font-size: 1.5rem; color: var(--text-dark); margin-bottom: 20px; font-weight: 700; display: flex; align-items: center; }
+        .budget-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .budget-table th, .budget-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
+        .budget-table th { background-color: var(--primary-color); color: white; font-weight: 600; }
+        .budget-table tr:last-child td { border-bottom: none; }
+        .budget-table tr:nth-child(even) { background-color: #fafafa; }
+        .budget-total { font-weight: 700; background-color: #fff0f0 !important; color: var(--primary-color); }
+        .budget-notes { background: #f9f9f9; padding: 15px; border-radius: 8px; font-size: 0.9rem; color: #555; line-height: 1.6; border-left: 4px solid var(--accent-color); }
+        .budget-notes ul { padding-left: 20px; margin-top: 10px; }
+        
+        .transfer-tips { background: #eef2f5; padding: 20px; border-radius: 8px; margin-top: 30px; font-size: 0.9rem; color: #444; line-height: 1.7; border-left: 4px solid #3498db; }
+        .transfer-tips h3 { color: #2c3e50; font-size: 1.2rem; margin-bottom: 15px; font-weight: 700; display: flex; align-items: center; }
+        .transfer-tips h4 { color: #3498db; margin-top: 15px; margin-bottom: 5px; font-size: 1rem; }
+        .transfer-tips p { margin-bottom: 8px; }
+        .transfer-tips ul { padding-left: 20px; margin-bottom: 15px; }
+        .transfer-tips li { margin-bottom: 5px; }
+        
+        .map-toggle { display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #fff; border: none; border-radius: 30px; padding: 12px 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 2000; cursor: pointer; font-weight: 600; color: var(--text-dark); transition: all 0.3s ease; font-size: 1rem; align-items: center; justify-content: center; white-space: nowrap; }
+        .map-toggle:hover { transform: translateX(-50%) translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.25); background-color: #fafafa; }
+        .map-controls { position: absolute; top: 15px; right: 15px; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; padding: 5px; display: flex; }
+        .map-controls button { background: #fff; border: none; padding: 10px 14px; cursor: pointer; border-radius: 6px; margin: 0 2px; font-weight: bold; color: var(--text-dark); transition: all 0.2s; font-size: 1.2rem; line-height: 1; display: flex; align-items: center; justify-content: center; }
+        .map-controls button:hover { background-color: #f7f9fc; color: var(--primary-color); }
+        .leaflet-popup-content-wrapper { border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 0; overflow: hidden; }
+        .leaflet-popup-content { margin: 0; line-height: 1.6; min-width: 200px; }
+        .popup-header { padding: 12px 15px; color: white; font-weight: 700; font-size: 1rem; }
+        .popup-body { padding: 15px; text-align: center; }
+        .popup-btn { display: inline-block; margin-top: 10px; padding: 6px 12px; background-color: white; border: 1px solid currentColor; border-radius: 4px; text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: all 0.2s; }
+        .popup-btn:hover { background-color: rgba(0,0,0,0.05); }
+        .map-route-card { position: absolute; top: 16px; left: 16px; z-index: 1000; width: min(360px, calc(100% - 106px)); background: rgba(255,255,255,0.96); border: 1px solid rgba(231,237,243,0.95); border-radius: 8px; box-shadow: 0 12px 28px rgba(31,41,55,0.16); padding: 14px 16px; backdrop-filter: blur(8px); }
+        .route-card-kicker { color: var(--text-light); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.06em; }
+        .route-card-title { color: var(--ink); font-size: 1rem; font-weight: 800; margin-top: 3px; }
+        .route-card-detail { color: #5f6b7a; font-size: 0.86rem; margin-top: 6px; line-height: 1.5; }
+        .route-card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .route-card-tags span { display: inline-flex; align-items: center; min-height: 26px; padding: 4px 8px; border-radius: 999px; background: #f3f6f9; color: var(--text-dark); font-size: 0.78rem; font-weight: 700; }
+
+        @media (max-width: 768px) {
+            .container { flex-direction: column; height: 100dvh; overflow: hidden; }
+            .itinerary-panel { flex: 1; width: 100%; height: 100%; z-index: 20; position: relative; }
+            .map-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+            .map-panel.fullscreen { z-index: 30; opacity: 1; pointer-events: auto; }
+            .map-toggle { display: flex; }
+            .itinerary-panel.hidden { display: none; }
+            .day-panel { position: relative; }            
+            .date-nav { padding: 8px 10px; }
+            .date-item { min-width: 86px; padding: 9px 12px; }
+            .weather-strip { padding: 14px 14px 12px; }
+            .weather-heading { align-items: flex-start; flex-direction: column; gap: 4px; }
+            .weather-cards { grid-auto-columns: minmax(128px, 42vw); }
+            .utility-tabs { padding: 12px 18px 0; overflow-x: auto; }
+            h1 { font-size: 1.6rem; }
+            .subtitle { font-size: 0.9rem; }
+            .day-header { flex-direction: column; align-items: flex-start; }
+            .day-location { margin-top: 5px; }
+            .panel-content { padding: 24px 18px 96px; }
+            .day-plan { padding: 20px 18px; }
+            .day-summary { grid-template-columns: 1fr; }
+            .time-slot { flex-direction: column; padding-left: 14px; }
+            .time-period { margin-bottom: 8px; margin-right: 0; text-align: left; flex-basis: auto; }
+            .activity { width: 100%; }
+            .map-route-card { top: 14px; left: 14px; width: calc(100% - 88px); padding: 12px 14px; }
+            .leaflet-popup-content { font-size: 14px; min-width: 240px !important; }
+            .popup-btn { display: block; text-align: center; padding: 10px; margin-top: 8px; }
+            .budget-table { font-size: 0.85rem; }
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <!-- 左侧行程面板 -->
+        <section class="itinerary-panel" aria-labelledby="trip-title">
+            <header>
+                <div class="header-content">
+                    <h1 id="trip-title">日本关西关东十日游</h1>
+                    <p class="subtitle">大阪 · 京都 · 富士河口湖 · 箱根 · 东京 | 4月25日 - 5月4日</p>
+                </div>
+            </header>
+            <!-- 日期和天气合并面板 -->
+            <div class="day-panel">
+                <!-- 日期导航 -->
+                <nav class="date-nav" aria-label="按日期查看行程">
+                    <button type="button" class="date-item active" data-day="1" aria-controls="day1" aria-selected="true"><span class="date-day">第1天</span><span class="date-date">4月25日</span><span class="date-city">大阪</span></button>
+                    <button type="button" class="date-item" data-day="2" aria-controls="day2" aria-selected="false"><span class="date-day">第2天</span><span class="date-date">4月26日</span><span class="date-city">大阪</span></button>
+                    <button type="button" class="date-item" data-day="3" aria-controls="day3" aria-selected="false"><span class="date-day">第3天</span><span class="date-date">4月27日</span><span class="date-city">大阪 → 京都</span></button>
+                    <button type="button" class="date-item" data-day="4" aria-controls="day4" aria-selected="false"><span class="date-day">第4天</span><span class="date-date">4月28日</span><span class="date-city">京都</span></button>
+                    <button type="button" class="date-item" data-day="5" aria-controls="day5" aria-selected="false"><span class="date-day">第5天</span><span class="date-date">4月29日</span><span class="date-city">河口湖</span></button>
+                    <button type="button" class="date-item" data-day="6" aria-controls="day6" aria-selected="false"><span class="date-day">第6天</span><span class="date-date">4月30日</span><span class="date-city">箱根</span></button>
+                    <button type="button" class="date-item" data-day="7" aria-controls="day7" aria-selected="false"><span class="date-day">第7天</span><span class="date-date">5月1日</span><span class="date-city">箱根 → 东京</span></button>
+                    <button type="button" class="date-item" data-day="8" aria-controls="day8" aria-selected="false"><span class="date-day">第8天</span><span class="date-date">5月2日</span><span class="date-city">东京</span></button>
+                    <button type="button" class="date-item" data-day="9" aria-controls="day9" aria-selected="false"><span class="date-day">第9天</span><span class="date-date">5月3日</span><span class="date-city">东京</span></button>
+                    <button type="button" class="date-item" data-day="10" aria-controls="day10" aria-selected="false"><span class="date-day">第10天</span><span class="date-date">5月4日</span><span class="date-city">返程</span></button>
+                </nav>
+                <!-- 天气模块 -->
+                <section class="weather-strip" aria-labelledby="weather-title">
+                    <div class="weather-heading">
+                        <h2 id="weather-title">天气预报</h2>
+                        <span class="weather-source" id="weatherSource">实时数据来自 Open-Meteo</span>
+                    </div>
+                    <div class="weather-cards" id="weatherCards" aria-live="polite">
+                        <article class="weather-card is-loading">正在加载真实天气数据...</article>
+                    </div>
+                </section>
+            </div>
+            <div class="utility-tabs" aria-label="行程辅助信息">
+                <a href="#budget-title">费用总览</a>
+                <a href="#transport-title">交通攻略</a>
+            </div>
+            
+            <!-- 行程内容 -->
+            <div class="panel-content" aria-live="polite">
+                
+                <!-- 第1天 -->
+                <section id="day1" class="day-plan active" aria-labelledby="day1-title">
+                    <div class="day-header">
+                        <h2 class="day-title" id="day1-title">抵达大阪</h2>
+                        <span class="day-location">成都 → 大阪</span>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">09:00</div>
+                        <div class="activity">
+                            <div class="activity-title">从成都出发</div>
+                            <div class="activity-desc">成都双流/天府机场出发，期间将在上海进行转机。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">18:00</div>
+                        <div class="activity">
+                            <div class="activity-title">抵达关西机场</div>
+                            <div class="activity-desc">下午6点抵达大阪<span class="location-link" data-location="关西机场">关西国际机场</span><a href="https://www.google.com/maps/search/?api=1&query=Kansai+International+Airport" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>。交通说明：关西机场到市区约65分钟，可乘坐关西机场特快Haruka或南海电铁。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">19:00-20:00</div>
+                        <div class="activity">
+                            <div class="activity-title">前往市区酒店</div>
+                            <div class="activity-desc">乘坐南海电铁或机场巴士前往市区。晚上20:00左右入住<span class="location-link" data-location="Smile Hotel Premium Osaka Hommachi">微笑酒店PREMIUM大阪本町</span><a href="https://www.google.com/maps/search/?api=1&query=Smile+Hotel+Premium+Osaka+Hommachi" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a> (2 Chome-8-6 Minamisenba, Chuo Ward)。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">晚上</div>
+                        <div class="activity">
+                            <div class="activity-title">酒店周边晚餐与休息</div>
+                            <div class="activity-desc">由于抵达时间较早，可在酒店附近寻觅美食享用晚餐，随后散步休息，调整准备接下来的行程。</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 第2天 -->
+                <section id="day2" class="day-plan" aria-labelledby="day2-title">
+                    <div class="day-header">
+                        <h2 class="day-title" id="day2-title">大阪环球影城全天</h2>
+                        <span class="day-location">大阪</span>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">08:00-09:00</div>
+                        <div class="activity">
+                            <div class="activity-title">前往环球影城</div>
+                            <div class="activity-desc">在JR大阪站换乘，约20分钟抵达。建议提前下载USJ APP绑定门票。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">09:00-16:00</div>
+                        <div class="activity">
+                            <div class="activity-title">环球影城游玩</div>
+                            <div class="activity-desc">在<span class="location-link" data-location="日本环球影城">日本环球影城</span><a href="https://www.google.com/maps/search/?api=1&query=Universal+Studios+Japan" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>畅玩。推荐项目：哈利波特、马里奥世界、蜘蛛侠。游玩提示：门票约492元/人，马里奥世界需抢整理券（入园后立刻在APP抽取），哈利波特禁忌之旅建议一入园就排队。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">16:00-18:30</div>
+                        <div class="activity">
+                            <div class="activity-title">周边购物与休息</div>
+                            <div class="activity-desc">出园后前往周边的 <span class="location-link" data-location="Universal Citywalk">Universal Citywalk</span><a href="https://www.google.com/maps/search/?api=1&query=Universal+Citywalk+Osaka" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a> 区域购物、休息。也可选择去临近的 RINKU奥特莱斯。18:30后乘坐JR返回酒店。</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 第3天 -->
+                <section id="day3" class="day-plan" aria-labelledby="day3-title">
+                    <div class="day-header">
+                        <h2 class="day-title" id="day3-title">大阪经典游 → 京都</h2>
+                        <span class="day-location">大阪 → 京都</span>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">09:00-11:30</div>
+                        <div class="activity">
+                            <div class="activity-title">大阪城公园</div>
+                            <div class="activity-desc">从酒店退房并寄存行李，乘地铁约15分钟到达。游览<span class="location-link" data-location="大阪城公园">大阪城公园</span><a href="https://www.google.com/maps/search/?api=1&query=Osaka+Castle" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>及天守阁（门票600日元，开放时间9:00-17:00）。这里是日本三大名城之一，春季可赏樱花。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">11:30-14:00</div>
+                        <div class="activity">
+                            <div class="activity-title">心斋桥商圈</div>
+                            <div class="activity-desc">乘地铁约15分钟前往<span class="location-link" data-location="心斋桥">心斋桥</span><a href="https://www.google.com/maps/search/?api=1&query=Shinsaibashi" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>，在此游览、购物、逛街并享用午餐。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">14:30-16:30</div>
+                        <div class="activity">
+                            <div class="activity-title">道顿堀</div>
+                            <div class="activity-desc">步行约10分钟前往<span class="location-link" data-location="道顿堀">道顿堀</span><a href="https://www.google.com/maps/search/?api=1&query=Dotonbori" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>游览。与经典的固力高招牌拍照打卡，漫步道顿堀川沿岸。这里是2026亚洲100夜游必打卡景点。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">17:00-18:30</div>
+                        <div class="activity">
+                            <div class="activity-title">前往京都并入住酒店</div>
+                            <div class="activity-desc">返回大阪酒店取行李，然后乘坐JR京都线前往京都。抵达京都后，前往并入住<span class="location-link" data-location="Hotel Gimmond Kyoto">金门京都酒店（ホテルギンモンド京都）</span><a href="https://www.google.com/maps/search/?api=1&query=Hotel+Gimmond+Kyoto" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>。</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 第4天 -->
+                <section id="day4" class="day-plan" aria-labelledby="day4-title">
+                    <div class="day-header">
+                        <h2 class="day-title" id="day4-title">京都一日游</h2>
+                        <span class="day-location">京都</span>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">09:30-12:00</div>
+                        <div class="activity">
+                            <div class="activity-title">伏见稻荷大社</div>
+                            <div class="activity-desc">从酒店出发乘地铁前往京都标志性景观<span class="location-link" data-location="伏见稻荷大社">伏见稻荷大社</span><a href="https://www.google.com/maps/search/?api=1&query=Fushimi+Inari+Taisha" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>，欣赏并拍摄著名的千本鸟居。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">12:30-15:30</div>
+                        <div class="activity">
+                            <div class="activity-title">清水寺及周边</div>
+                            <div class="activity-desc">乘公交前往世界文化遗产<span class="location-link" data-location="清水寺">清水寺</span><a href="https://www.google.com/maps/search/?api=1&query=Kiyomizu-dera" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>，可俯瞰京都市区。之后漫步于<span class="location-link" data-location="三年坂二年坂">二年坂、三年坂</span><a href="https://www.google.com/maps/search/?api=1&query=Ninenzaka+Sannenzaka" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>，游览传统艺伎区<span class="location-link" data-location="花见小路">花见小路</span><a href="https://www.google.com/maps/search/?api=1&query=Hanamikoji+Street" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">16:00</div>
+                        <div class="activity">
+                            <div class="activity-title">祇园周边散步</div>
+                            <div class="activity-desc">在附近的祇园区域散步，感受京都傍晚的传统氛围，然后回酒店休息。</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 第5天 -->
+                <section id="day5" class="day-plan" aria-labelledby="day5-title">
+                    <div class="day-header">
+                        <h2 class="day-title" id="day5-title">京都 → 富士山河口湖</h2>
+                        <span class="day-location">富士河口湖</span>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">09:30-11:30</div>
+                        <div class="activity">
+                            <div class="activity-title">退房并前往三岛站</div>
+                            <div class="activity-desc">从<span class="location-link" data-location="Hotel Gimmond Kyoto">金门京都酒店（ホテルギンモンド京都）</span><a href="https://www.google.com/maps/search/?api=1&query=Hotel+Gimmond+Kyoto" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>退房，前往京都站乘坐新干线前往三岛站（约2小时，11510日元/人）。建议购买指定席，左侧座位（D/E座）可看富士山。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">12:00-14:30</div>
+                        <div class="activity">
+                            <div class="activity-title">前往河口湖</div>
+                            <div class="activity-desc">三岛站南口换乘直达<span class="location-link" data-location="河口湖站">河口湖站</span><a href="https://www.google.com/maps/search/?api=1&query=Kawaguchiko+Station" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>的巴士（约1.5小时，2300日元）。抵达后乘巴士或出租车前往酒店。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">15:00</div>
+                        <div class="activity">
+                            <div class="activity-title">入住天然温泉酒店</div>
+                            <div class="activity-desc">入住<span class="location-link" data-location="玛里裴森酒店">玛里裴森酒店</span><a href="https://www.google.com/maps/search/?api=1&query=山梨县南都留郡山中湖村Hirano 506−648, 401-0502" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">15:30-18:30</div>
+                        <div class="activity">
+                            <div class="activity-title">温泉体验与湖畔散步</div>
+                            <div class="activity-desc">在酒店体验天然温泉并观赏富士山，傍晚在河口湖畔散步。</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 第6天 -->
+                <section id="day6" class="day-plan" aria-labelledby="day6-title">
+                    <div class="day-header">
+                        <h2 class="day-title" id="day6-title">富士河口湖 → 箱根强罗</h2>
+                        <span class="day-location">箱根强罗</span>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">09:00-10:00</div>
+                        <div class="activity">
+                            <div class="activity-title">晨景与退房</div>
+                            <div class="activity-desc">享用酒店早餐，欣赏富士山晨景后退房。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">10:00-12:30</div>
+                        <div class="activity">
+                            <div class="activity-title">前往箱根</div>
+                            <div class="activity-desc">乘巴士从河口湖站到御殿场站，换乘后前往箱根强罗（总计约2小时）。中途在御殿场可逛奥特莱斯。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">13:30-15:00</div>
+                        <div class="activity">
+                            <div class="activity-title">大涌谷游览</div>
+                            <div class="activity-desc">游览箱根标志性景点、著名火山遗址<span class="location-link" data-location="大涌谷">大涌谷</span><a href="https://www.google.com/maps/search/?api=1&query=Owakudani" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>，品尝特色黑鸡蛋，远眺富士山。可体验箱根登山铁道。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">15:00</div>
+                        <div class="activity">
+                            <div class="activity-title">入住温泉酒店</div>
+                            <div class="activity-desc">入住<span class="location-link" data-location="季之汤雪月花">箱根强罗温泉季之汤雪月花</span><a href="https://www.google.com/maps/search/?api=1&query=Hakone+Gora+Onsen+Tokinoyu+Setsugetsuka" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>。下午体验箱根最佳温泉地点之一的强罗温泉（含五种不同温泉），傍晚在<span class="location-link" data-location="强罗公园">强罗公园</span><a href="https://www.google.com/maps/search/?api=1&query=Gora+Park" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>周边散步。</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 第7天 -->
+                <section id="day7" class="day-plan" aria-labelledby="day7-title">
+                    <div class="day-header">
+                        <h2 class="day-title" id="day7-title">箱根一日游 → 东京秋叶原</h2>
+                        <span class="day-location">箱根 → 东京</span>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">09:00-14:30</div>
+                        <div class="activity">
+                            <div class="activity-title">箱根一日游</div>
+                            <div class="activity-desc">从酒店退房并寄存行李后，深度游览箱根。可以乘坐<span class="location-link" data-location="芦之湖">芦之湖</span><a href="https://www.google.com/maps/search/?api=1&query=Lake+Ashi" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>海贼船、参观<span class="location-link" data-location="箱根神社">箱根神社</span><a href="https://www.google.com/maps/search/?api=1&query=Hakone+Shrine" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>（水上鸟居），或者参观<span class="location-link" data-location="雕刻之森美术馆">雕刻之森美术馆</span><a href="https://www.google.com/maps/search/?api=1&query=The+Hakone+Open-Air+Museum" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">14:30-17:00</div>
+                        <div class="activity">
+                            <div class="activity-title">前往东京秋叶原</div>
+                            <div class="activity-desc">取回行李，从箱根汤本站乘车至小田原站，换乘新干线前往<span class="location-link" data-location="东京站">东京站</span><a href="https://www.google.com/maps/search/?api=1&query=Tokyo+Station" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>，再转乘JR山手线前往<span class="location-link" data-location="秋叶原">秋叶原</span><a href="https://www.google.com/maps/search/?api=1&query=Akihabara" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">17:00</div>
+                        <div class="activity">
+                            <div class="activity-title">入住秋叶原酒店</div>
+                            <div class="activity-desc">抵达后入住<span class="location-link" data-location="Hotel LiveMax Tokyo Akihabara Kita">利夫马克斯酒店-东京秋叶原北店</span><a href="https://www.google.com/maps/search/?api=1&query=Hotel+LiveMax+Tokyo+Akihabara+Kita" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">18:00-20:30</div>
+                        <div class="activity">
+                            <div class="activity-title">秋叶原及周边晚餐</div>
+                            <div class="activity-desc">在秋叶原商圈附近漫步，感受动漫与电器街的夜景，并享用晚餐。</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 第8天 -->
+                <section id="day8" class="day-plan" aria-labelledby="day8-title">
+                    <div class="day-header">
+                        <h2 class="day-title" id="day8-title">东京市区游</h2>
+                        <span class="day-location">东京</span>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">09:30-11:30</div>
+                        <div class="activity">
+                            <div class="activity-title">浅草寺</div>
+                            <div class="activity-desc">从酒店乘地铁前往<span class="location-link" data-location="浅草寺">浅草寺</span><a href="https://www.google.com/maps/search/?api=1&query=Senso-ji" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>，游览雷门和仲见世商店街。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">11:30-14:00</div>
+                        <div class="activity">
+                            <div class="activity-title">东京晴空塔</div>
+                            <div class="activity-desc">步行或乘地铁一站至<span class="location-link" data-location="东京晴空塔">东京晴空塔</span><a href="https://www.google.com/maps/search/?api=1&query=Tokyo+Skytree" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>及周边游览，可选登塔观景。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">14:30-16:30</div>
+                        <div class="activity">
+                            <div class="activity-title">原宿、表参道</div>
+                            <div class="activity-desc">乘地铁（半藏门线转银座线等）前往<span class="location-link" data-location="原宿">原宿</span><a href="https://www.google.com/maps/search/?api=1&query=Harajuku" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>和表参道时尚街区，游览明治神宫外苑周边。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">17:00-19:00</div>
+                        <div class="activity">
+                            <div class="activity-title">涩谷商圈</div>
+                            <div class="activity-desc">从原宿步行或乘地铁一站前往<span class="location-link" data-location="涩谷">涩谷</span><a href="https://www.google.com/maps/search/?api=1&query=Shibuya" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>，打卡著名的涩谷十字路口和忠犬八公像，在此享用晚餐后返回酒店。</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 第9天 -->
+                <section id="day9" class="day-plan" aria-labelledby="day9-title">
+                    <div class="day-header">
+                        <h2 class="day-title" id="day9-title">东京自由活动</h2>
+                        <span class="day-location">东京</span>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">全天</div>
+                        <div class="activity">
+                            <div class="activity-title">自由活动与购物</div>
+                            <div class="activity-desc">全天自由活动。推荐备选景点：<span class="location-link" data-location="台场">台场</span><a href="https://www.google.com/maps/search/?api=1&query=Odaiba" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>（海滨公园、自由女神像、彩虹大桥）、<span class="location-link" data-location="上野公园">上野公园</span><a href="https://www.google.com/maps/search/?api=1&query=Ueno+Park" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>（博物馆、动物园）、<span class="location-link" data-location="新宿">新宿</span><a href="https://www.google.com/maps/search/?api=1&query=Shinjuku" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>（歌舞伎町、新宿御苑）。下午可补充纪念品购物。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">晚上</div>
+                        <div class="activity">
+                            <div class="activity-title">准备返程</div>
+                            <div class="activity-desc">在酒店整理行李，准备次日的返程航班。</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 第10天 -->
+                <section id="day10" class="day-plan" aria-labelledby="day10-title">
+                    <div class="day-header">
+                        <h2 class="day-title" id="day10-title">东京市区游玩 → 成都（返程日）</h2>
+                        <span class="day-location">东京 → 成田机场 → 成都</span>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">09:00-11:00</div>
+                        <div class="activity">
+                            <div class="activity-title">退房与自由游玩</div>
+                            <div class="activity-desc">酒店早餐后退房并寄存行李。利用上午的时间在秋叶原或周边商圈进行最后的游玩、打卡和补充购物。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">11:00-12:30</div>
+                        <div class="activity">
+                            <div class="activity-title">前往成田机场</div>
+                            <div class="activity-desc">乘坐JR成田特快（N'EX车票约3000日元）或京成电铁Skyliner前往<span class="location-link" data-location="成田机场">成田机场</span><a href="https://www.google.com/maps/search/?api=1&query=Narita+International+Airport" target="_blank" rel="noopener noreferrer" class="nav-link">导航</a>。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">12:30-14:30</div>
+                        <div class="activity">
+                            <div class="activity-title">办理登机与午餐</div>
+                            <div class="activity-desc">到达机场办理登机手续和行李托运、安检，之后在免税区享受购物和午餐。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">15:20</div>
+                        <div class="activity">
+                            <div class="activity-title">起飞</div>
+                            <div class="activity-desc">下午3点20分从成田机场起飞，期间在澳门机场进行转机（22:00起飞）。</div>
+                        </div>
+                    </div>
+                    <div class="time-slot">
+                        <div class="time-period">次日00:00</div>
+                        <div class="activity">
+                            <div class="activity-title">抵达成都</div>
+                            <div class="activity-desc">安全抵达成都，结束愉快的日本之旅！</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 费用明细模块 -->
+                <section class="budget-section" aria-labelledby="budget-title">
+                    <h2 class="budget-title" id="budget-title">💰 行程概览与费用明细</h2>
+                    <table class="budget-table">
+                        <thead>
+                            <tr>
+                                <th>项目</th>
+                                <th>金额（人民币）</th>
+                                <th>备注</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>机票（2人）</td>
+                                <td>6,160元</td>
+                                <td>3080元/人来回</td>
+                            </tr>
+                            <tr>
+                                <td>酒店（6晚）</td>
+                                <td>6,544元</td>
+                                <td>951+422+1580+460+675+2456</td>
+                            </tr>
+                            <tr class="budget-total">
+                                <td>基础合计</td>
+                                <td>12,704元</td>
+                                <td>不含餐饮、门票、交通</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <div class="budget-notes">
+                        <strong>预估额外费用（仅供参考）：</strong>
+                        <ul>
+                            <li>日本境内交通：约 3000-4000元 / 2人</li>
+                            <li>景点门票：约 2000元 / 2人（包含环球影城、温泉等）</li>
+                            <li>餐饮：约 3000-5000元 / 2人</li>
+                        </ul>
+                        <div style="margin-top: 10px; font-weight: bold; color: var(--primary-color);">总计预估：约 20000 - 22000元 / 2人</div>
+                    </div>
+
+                    <section class="transfer-tips" aria-labelledby="transport-title">
+                        <h3 id="transport-title">🚄 交通转移购票与省钱攻略</h3>
+                        
+                        <h4>1. 关西机场 → 大阪市区（第1天）</h4>
+                        <ul>
+                            <li><strong>攻略：</strong>推荐购买 <b>“Haruka + ICOCA 套票”</b> 或提前在 Klook/携程 购买南海电铁特急券（Rapi:t），单买通常比现场便宜。ICOCA 卡类似于国内的公交卡，关西、关东（包括东京）的地铁和公交都能刷，非常必要，建议落地就在机场办理。</li>
+                        </ul>
+
+                        <h4>2. 大阪市区内及周边（第1-3天）</h4>
+                        <ul>
+                            <li><strong>攻略：</strong>如果您第3天要在大阪疯狂打卡景点（大阪城、通天阁、梅田蓝天大厦等），推荐购买 <b>“大阪周游卡（1日券）”</b>。它不仅包含地铁无限次乘坐，还免费包含 40 多个知名景点的门票，只要去3个以上景点就能回本。</li>
+                            <li>如果只去环球影城和心斋桥，不用买周游卡，直接刷 ICOCA 卡或在 Apple Wallet 绑定西瓜卡（Suica）最方便。</li>
+                        </ul>
+
+                        <h4>3. 大阪 → 京都（第3天）</h4>
+                        <ul>
+                            <li><strong>攻略：</strong>乘坐 JR 京都线（新快速）只需不到 30 分钟，直接刷 ICOCA 卡或 Suica 卡进站即可，单程约 570 日元。无需提前买票，随到随走。</li>
+                        </ul>
+
+                        <h4>4. 京都 → 河口湖（第5天，最远的一段）</h4>
+                        <ul>
+                            <li><strong>路线：</strong>京都站 → (新干线) → 三岛站 → (富士急大巴) → 河口湖站。</li>
+                            <li><strong>新干线购票：</strong>建议在出发前 1-2 天，直接去 JR 绿色窗口（京都站内到处都是）在自助机或人工柜台买票。推荐买<b>“指定席”</b>，并要求 <b>“左边靠窗（D或E座）”</b>（海侧位），天气好时在车上就能看到富士山。价格约 11510 日元/人，这段较贵，但最省时。</li>
+                            <li><strong>大巴购票：</strong>三岛站南口出来就是大巴站。建议提前 1 周在富士急巴士官网（或当地便利店）预约三岛到河口湖的票（约 2300 日元），因为这条线很火，以免现场没票。</li>
+                        </ul>
+
+                        <h4>5. 河口湖 → 箱根（第6天）</h4>
+                        <ul>
+                            <li><strong>路线：</strong>河口湖站 → (富士急巴士) → 御殿场站 → (箱根登山巴士) → 箱根强罗。</li>
+                            <li><strong>攻略：</strong>这段路建议提前在河口湖车站购买 <b>“富士箱根周游券 (Fuji Hakone Pass)”</b> 或者如果只想玩箱根，可在御殿场或小田原购买 <b>“箱根周游券 (Hakone Free Pass - 2日券)”</b>。<br>
+                            买了周游券后，箱根境内的登山电车、缆车、海贼船、巴士全包，极其划算，而且省去了每次坐车掏零钱的巨大烦恼。</li>
+                        </ul>
+
+                        <h4>6. 箱根 → 东京市区（第7天）</h4>
+                        <ul>
+                            <li><strong>路线：</strong>箱根汤本/小田原 → (小田急电铁或新干线) → 新宿/东京站。</li>
+                            <li><strong>攻略：</strong>如果您买了“箱根周游券（含小田急线往返）”，那么从箱根回东京（新宿站）的车费已经包含了。如果要坐更快、更舒适的“浪漫特快 (Romancecar)”，只需补交特急费用（约 1200 日元）即可，强烈推荐。</li>
+                        </ul>
+
+                        <h4>7. 东京市区内（第8-10天）</h4>
+                        <ul>
+                            <li><strong>攻略：</strong>如果您某天计划去 3 个以上的区域（比如浅草+晴空塔+原宿+涩谷），推荐在地铁站机器上购买 <b>“东京地铁 24/48/72 小时通票 (Tokyo Subway Ticket)”</b>，24小时券仅 800 日元，坐 4 趟地铁就回本。注意：该券只能坐东京 Metro 和都营地铁，不能坐 JR（如山手线）。不能刷此券时，就用手机里的 Suica 卡。</li>
+                        </ul>
+                    </section>
+                </section>
+
+            </div>
+        </section>
+        
+        <!-- 右侧地图面板 -->
+        <aside class="map-panel" aria-label="每日路线地图">
+            <div class="map-route-card" aria-live="polite">
+                <div class="route-card-kicker" id="routeCardKicker">DAY 1</div>
+                <div class="route-card-title" id="routeCardTitle">抵达大阪</div>
+                <div class="route-card-detail" id="routeCardDetail">2 个地点 · 机场到酒店的轻量移动日</div>
+                <div class="route-card-tags">
+                    <span id="routeCardStart">起点：关西机场</span>
+                    <span id="routeCardEnd">终点：酒店</span>
+                </div>
+            </div>
+            <div class="map-controls">
+                <button type="button" id="zoomIn" aria-label="放大地图">+</button>
+                <button type="button" id="zoomOut" aria-label="缩小地图">-</button>
+                <button type="button" id="resetView" aria-label="重置地图视图">↺</button>
+            </div>
+            <div id="map" role="application" aria-label="行程路线地图"></div>
+        </aside>
+        
+        <!-- 移动端地图切换按钮 -->
+        <button type="button" class="map-toggle" id="mapToggle" aria-controls="map" aria-expanded="false">🗺️ 显示地图</button>
+    </main>
+
+    <!-- 复制提示框 -->
+    <div class="copy-toast" id="copyToast">已复制到剪贴板</div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 初始化地图
+        const map = L.map('map', {
+            center: [34.6937, 135.5023], // 大阪中心坐标
+            zoom: 10
+        });
+
+        // 添加地图图层
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        // 定义每天的行程路线坐标点和名称
+        const dayRoutes = {
+            1: {
+                points: [
+                    { name: "关西机场", coords: [34.4342, 135.2441], type: "airport" },
+                    { name: "Smile Hotel Premium Osaka Hommachi", coords: [34.6816, 135.5000], type: "hotel" }
+                ],
+                color: '#ff4444'
+            },
+            2: {
+                points: [
+                    { name: "Smile Hotel Premium Osaka Hommachi", coords: [34.6816, 135.5000], type: "hotel" },
+                    { name: "日本环球影城", coords: [34.6654, 135.4323], type: "attraction" },
+                    { name: "Universal Citywalk", coords: [34.6681, 135.4373], type: "attraction" }
+                ],
+                color: '#ff8800'
+            },
+            3: {
+                points: [
+                    { name: "Smile Hotel Premium Osaka Hommachi", coords: [34.6816, 135.5000], type: "hotel" },
+                    { name: "大阪城公园", coords: [34.6873, 135.5262], type: "attraction" },
+                    { name: "心斋桥", coords: [34.6713, 135.5000], type: "attraction" },
+                    { name: "道顿堀", coords: [34.6687, 135.5022], type: "attraction" },
+                    { name: "通天阁", coords: [34.6525, 135.5063], type: "attraction" }
+                ],
+                color: '#ffaa00'
+            },
+            4: {
+                points: [
+                    { name: "京都站", coords: [34.9858, 135.7587], type: "airport" },
+                    { name: "伏见稻荷大社", coords: [34.9671, 135.7727], type: "attraction" },
+                    { name: "清水寺", coords: [34.9949, 135.7850], type: "attraction" },
+                    { name: "花见小路", coords: [35.0035, 135.7723], type: "attraction" },
+                    { name: "Hotel Gimmond Kyoto", coords: [35.0116, 135.7629], type: "hotel" }
+                ],
+                color: '#00aa44'
+            },
+            5: {
+                points: [
+                    { name: "Hotel Gimmond Kyoto", coords: [35.0116, 135.7629], type: "hotel" },
+                    { name: "三岛站", coords: [35.1264, 138.9109], type: "airport" },
+                    { name: "河口湖站", coords: [35.4981, 138.7686], type: "attraction" },
+                    { name: "玛里裴森酒店", coords: [35.4243, 138.8837], type: "hotel" }
+                ],
+                color: '#0088ff'
+            },
+            6: {
+                points: [
+                    { name: "玛里裴森酒店", coords: [35.4243, 138.8837], type: "hotel" },
+                    { name: "御殿场站", coords: [35.3005, 138.9348], type: "attraction" },
+                    { name: "大涌谷", coords: [35.2415, 139.0199], type: "attraction" },
+                    { name: "季之汤雪月花", coords: [35.2496, 139.0487], type: "hotel" },
+                    { name: "强罗公园", coords: [35.2483, 139.0461], type: "attraction" }
+                ],
+                color: '#aa00ff'
+            },
+            7: {
+                points: [
+                    { name: "季之汤雪月花", coords: [35.2496, 139.0487], type: "hotel" },
+                    { name: "雕刻之森美术馆", coords: [35.2449, 139.0514], type: "attraction" },
+                    { name: "芦之湖 / 箱根神社", coords: [35.2045, 139.0254], type: "attraction" },
+                    { name: "小田原站", coords: [35.2561, 139.1554], type: "airport" },
+                    { name: "东京站", coords: [35.6812, 139.7671], type: "airport" },
+                    { name: "秋叶原", coords: [35.6985, 139.7716], type: "attraction" },
+                    { name: "Hotel LiveMax Tokyo Akihabara Kita", coords: [35.7029, 139.7749], type: "hotel" }
+                ],
+                color: '#ff44aa'
+            },
+            8: {
+                points: [
+                    { name: "Hotel LiveMax Tokyo Akihabara Kita", coords: [35.7029, 139.7749], type: "hotel" },
+                    { name: "浅草寺", coords: [35.7148, 139.7967], type: "attraction" },
+                    { name: "东京晴空塔", coords: [35.7101, 139.8107], type: "attraction" },
+                    { name: "原宿", coords: [35.6702, 139.7027], type: "attraction" },
+                    { name: "涩谷", coords: [35.6580, 139.7016], type: "attraction" }
+                ],
+                color: '#ff0066'
+            },
+            9: {
+                points: [
+                    { name: "Hotel LiveMax Tokyo Akihabara Kita", coords: [35.7029, 139.7749], type: "hotel" },
+                    { name: "台场", coords: [35.6248, 139.7731], type: "attraction" },
+                    { name: "上野公园", coords: [35.7142, 139.7770], type: "attraction" },
+                    { name: "新宿", coords: [35.6896, 139.7005], type: "attraction" }
+                ],
+                color: '#4ecdc4'
+            },
+            10: {
+                points: [
+                    { name: "Hotel LiveMax Tokyo Akihabara Kita", coords: [35.7029, 139.7749], type: "hotel" },
+                    { name: "成田机场", coords: [35.7647, 140.3863], type: "airport" }
+                ],
+                color: '#34495e'
+            }
+        };
+
+        const dayMeta = {
+            1: { title: '抵达大阪', city: '大阪', movement: '机场 → 本町酒店', intensity: '轻松', transport: '南海电铁 / Haruka', note: '落地后以入住和休息为主' },
+            2: { title: '大阪环球影城全天', city: '大阪', movement: '酒店 ⇄ 环球影城', intensity: '高强度', transport: 'JR 换乘', note: '重点关注入园时间和整理券' },
+            3: { title: '大阪经典游 → 京都', city: '大阪 / 京都', movement: '大阪市区 → 京都酒店', intensity: '中等', transport: '地铁 + JR 京都线', note: '购物、打卡和换城集中在同一天' },
+            4: { title: '京都一日游', city: '京都', movement: '伏见稻荷 → 清水寺 → 祇园', intensity: '中等偏高', transport: '地铁 / 公交', note: '步行较多，建议穿舒适鞋' },
+            5: { title: '京都 → 富士山河口湖', city: '河口湖', movement: '京都 → 三岛 → 河口湖', intensity: '长途移动', transport: '新干线 + 富士急巴士', note: '建议提前买指定席和巴士票' },
+            6: { title: '富士河口湖 → 箱根强罗', city: '箱根', movement: '河口湖 → 御殿场 → 强罗', intensity: '中等', transport: '巴士 + 箱根交通', note: '可结合周游券降低换乘成本' },
+            7: { title: '箱根一日游 → 东京秋叶原', city: '箱根 / 东京', movement: '箱根游览 → 东京入住', intensity: '中等偏高', transport: '登山交通 + 新干线 / JR', note: '下午换城，行李时间要留足' },
+            8: { title: '东京市区游', city: '东京', movement: '浅草 → 晴空塔 → 原宿 → 涩谷', intensity: '高强度', transport: '东京地铁', note: '区域跨度大，适合用地铁通票' },
+            9: { title: '东京自由活动', city: '东京', movement: '台场 / 上野 / 新宿备选', intensity: '弹性', transport: '地铁 / JR', note: '适合补购物、补景点或放慢节奏' },
+            10: { title: '东京市区游玩 → 成都', city: '东京 / 返程', movement: '酒店 → 成田机场', intensity: '返程日', transport: 'NEX / Skyliner', note: '机场交通和托运时间优先' }
+        };
+
+        const tripWeatherDays = {
+            1: { date: '2026-04-25', label: '4月25日', place: '大阪', lat: 34.6937, lon: 135.5023 },
+            2: { date: '2026-04-26', label: '4月26日', place: '大阪', lat: 34.6937, lon: 135.5023 },
+            3: { date: '2026-04-27', label: '4月27日', place: '大阪/京都', lat: 35.0116, lon: 135.7681 },
+            4: { date: '2026-04-28', label: '4月28日', place: '京都', lat: 35.0116, lon: 135.7681 },
+            5: { date: '2026-04-29', label: '4月29日', place: '河口湖', lat: 35.4981, lon: 138.7686 },
+            6: { date: '2026-04-30', label: '4月30日', place: '箱根', lat: 35.2324, lon: 139.1069 },
+            7: { date: '2026-05-01', label: '5月1日', place: '箱根/东京', lat: 35.2324, lon: 139.1069 },
+            8: { date: '2026-05-02', label: '5月2日', place: '东京', lat: 35.6812, lon: 139.7671 },
+            9: { date: '2026-05-03', label: '5月3日', place: '东京', lat: 35.6812, lon: 139.7671 },
+            10: { date: '2026-05-04', label: '5月4日', place: '东京/成田', lat: 35.7647, lon: 140.3863 }
+        };
+
+        function weatherCodeText(code) {
+            const codes = {
+                0: '晴朗', 1: '大部晴朗', 2: '局部多云', 3: '阴天',
+                45: '有雾', 48: '雾凇',
+                51: '小毛毛雨', 53: '毛毛雨', 55: '较强毛毛雨',
+                56: '冻毛毛雨', 57: '强冻毛毛雨',
+                61: '小雨', 63: '中雨', 65: '大雨',
+                66: '冻雨', 67: '强冻雨',
+                71: '小雪', 73: '中雪', 75: '大雪', 77: '雪粒',
+                80: '阵雨', 81: '较强阵雨', 82: '强阵雨',
+                85: '阵雪', 86: '强阵雪',
+                95: '雷雨', 96: '雷雨伴冰雹', 99: '强雷雨伴冰雹'
+            };
+            return codes[code] || '天气待确认';
+        }
+
+        function renderWeatherCards(weatherByDay) {
+            const cards = document.getElementById('weatherCards');
+            cards.innerHTML = Object.entries(tripWeatherDays).map(([day, meta]) => {
+                const weather = weatherByDay[day];
+                if (!weather) {
+                    return `
+                        <article class="weather-card">
+                            <span class="weather-day-subtitle">第${day}天</span>
+                            <span class="weather-date-title">${meta.label}</span>
+                            <span class="weather-place">${meta.place}</span>
+                            <div class="weather-temp">暂无</div>
+                            <div class="weather-state">预报不可用</div>
+                            <div class="weather-rain">请稍后刷新</div>
+                        </article>
+                    `;
+                }
+                const rain = Number.isFinite(weather.rain) ? `降水概率 ${weather.rain}%` : '降水概率暂无';
+                return `
+                    <article class="weather-card">
+                        <span class="weather-day-subtitle">第${day}天</span>
+                        <span class="weather-date-title">${meta.label}</span>
+                        <span class="weather-place">${meta.place}</span>
+                        <div class="weather-temp">${Math.round(weather.min)}° / ${Math.round(weather.max)}°C</div>
+                        <div class="weather-state">${weatherCodeText(weather.code)}</div>
+                        <div class="weather-rain">${rain}</div>
+                    </article>
+                `;
+            }).join('');
+        }
+
+        async function loadWeatherForecast() {
+            const weatherByDay = {};
+            const uniqueLocations = [...new Map(
+                Object.values(tripWeatherDays).map(day => [`${day.lat},${day.lon}`, day])
+            ).values()];
+
+            try {
+                const forecasts = await Promise.all(uniqueLocations.map(async location => {
+                    const params = new URLSearchParams({
+                        latitude: location.lat,
+                        longitude: location.lon,
+                        daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max',
+                        timezone: 'Asia/Tokyo',
+                        start_date: '2026-04-25',
+                        end_date: '2026-05-04'
+                    });
+                    const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`);
+                    if (!response.ok) throw new Error('天气数据请求失败');
+                    return { key: `${location.lat},${location.lon}`, data: await response.json() };
+                }));
+
+                const forecastByLocation = new Map(forecasts.map(item => [item.key, item.data.daily]));
+                Object.entries(tripWeatherDays).forEach(([day, meta]) => {
+                    const daily = forecastByLocation.get(`${meta.lat},${meta.lon}`);
+                    const index = daily?.time?.indexOf(meta.date);
+                    if (index === undefined || index < 0) return;
+                    weatherByDay[day] = {
+                        max: daily.temperature_2m_max[index],
+                        min: daily.temperature_2m_min[index],
+                        rain: daily.precipitation_probability_max[index],
+                        code: daily.weather_code[index]
+                    };
+                });
+
+                renderWeatherCards(weatherByDay);
+                document.getElementById('weatherSource').textContent = `实时数据来自 Open-Meteo · 更新于 ${new Date().toLocaleString('zh-CN', { hour12: false })}`;
+            } catch (error) {
+                console.warn(error);
+                document.getElementById('weatherSource').textContent = '天气数据暂时无法加载';
+                renderWeatherCards(weatherByDay);
+            }
+        }
+
+        function injectDaySummaries() {
+            Object.entries(dayMeta).forEach(([day, meta]) => {
+                const section = document.getElementById('day' + day);
+                const header = section?.querySelector('.day-header');
+                if (!section || !header || section.querySelector('.day-summary')) return;
+
+                const summary = document.createElement('div');
+                summary.className = 'day-summary';
+                summary.innerHTML = `
+                    <div class="summary-pill"><span class="summary-label">城市</span><span class="summary-value">${meta.city}</span></div>
+                    <div class="summary-pill"><span class="summary-label">主要移动</span><span class="summary-value">${meta.movement}</span></div>
+                    <div class="summary-pill"><span class="summary-label">强度</span><span class="summary-value">${meta.intensity}</span></div>
+                    <div class="summary-pill"><span class="summary-label">交通重点</span><span class="summary-value">${meta.transport}</span></div>
+                `;
+                header.insertAdjacentElement('afterend', summary);
+            });
+        }
+
+        function updateMapSummary(day) {
+            const route = dayRoutes[day];
+            const meta = dayMeta[day];
+            if (!route || !meta) return;
+
+            const firstPoint = route.points[0]?.name || '起点';
+            const lastPoint = route.points[route.points.length - 1]?.name || '终点';
+            document.getElementById('routeCardKicker').textContent = `DAY ${day} · ${meta.city}`;
+            document.getElementById('routeCardTitle').textContent = meta.title;
+            document.getElementById('routeCardDetail').textContent = `${route.points.length} 个地点 · ${meta.note}`;
+            document.getElementById('routeCardStart').textContent = `起点：${firstPoint}`;
+            document.getElementById('routeCardEnd').textContent = `终点：${lastPoint}`;
+        }
+
+        // 创建路线图层组
+        let currentRouteLayer = L.layerGroup().addTo(map);
+        
+        // 标记点图标
+        const hotelIcon = L.icon({
+            iconUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ff4444"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>',
+            iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -30]
+        });
+        
+        const attractionIcon = L.icon({
+            iconUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%230088ff"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>',
+            iconSize: [25, 25], iconAnchor: [12, 25], popupAnchor: [0, -25]
+        });
+
+        const airportIcon = L.icon({
+            iconUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%2300aa44"><path d="M22 16v-2l-8.5-5V3.5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5V9L2 14v2l8.5-2.5V19L8 20.5V22l4-1 4 1v-1.5L13.5 19v-5.5L22 16z"/></svg>',
+            iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -30]
+        });
+
+        function showDayRoute(day) {
+            currentRouteLayer.clearLayers();
+            const route = dayRoutes[day];
+            if (!route) return;
+            updateMapSummary(day);
+            const coords = route.points.map(point => point.coords);
+            
+            const polyline = L.polyline(coords, { color: route.color, weight: 8, opacity: 1, lineCap: 'round', lineJoin: 'round' }).addTo(currentRouteLayer);
+            const shadowPolyline = L.polyline(coords, { color: '#000', weight: 12, opacity: 0.2, lineCap: 'round', lineJoin: 'round' }).addTo(currentRouteLayer);
+            
+            route.points.forEach((point, index) => {
+                let icon = point.type === "hotel" ? hotelIcon : (point.type === "airport" ? airportIcon : attractionIcon);
+                let marker = L.marker(point.coords, {icon: icon}).addTo(currentRouteLayer);
+                
+                const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${point.coords[0]},${point.coords[1]}`;
+                
+                // 计算到下一个地点的路线导航URL
+                let routeHtml = '';
+                if (index < route.points.length - 1) {
+                    const nextPoint = route.points[index + 1];
+                    const dirUrl = `https://www.google.com/maps/dir/?api=1&origin=${point.coords[0]},${point.coords[1]}&destination=${nextPoint.coords[0]},${nextPoint.coords[1]}&travelmode=transit`;
+                    routeHtml = `<a href="${dirUrl}" target="_blank" rel="noopener noreferrer" class="route-btn">🗺️ 查看去下一站路线</a>`;
+                }
+
+                const popupContent = `
+                    <div class="custom-popup">
+                        <div class="popup-header" style="background: ${route.color}">${point.name}</div>
+                        <div class="popup-body">
+                            <a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" class="popup-btn" style="color: ${route.color}; border-color: ${route.color}">📍 在 Google Maps 中查看</a>
+                            <br>
+                            ${routeHtml}
+                        </div>
+                    </div>
+                `;
+                marker.bindPopup(popupContent);
+            });
+            
+            map.fitBounds(polyline.getBounds(), {padding: [20, 20]});
+        }
+
+        injectDaySummaries();
+        loadWeatherForecast();
+        showDayRoute(1);
+
+        document.querySelectorAll('.date-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.date-item').forEach(i => {
+                    i.classList.remove('active');
+                    i.setAttribute('aria-selected', 'false');
+                });
+                this.classList.add('active');
+                this.setAttribute('aria-selected', 'true');
+                const day = this.getAttribute('data-day');
+                document.querySelectorAll('.day-plan').forEach(plan => plan.classList.remove('active'));
+                document.getElementById('day' + day).classList.add('active');
+                showDayRoute(day);
+            });
+        });
+
+        // 让日期导航和天气卡片支持同步滚动
+        const dateNav = document.querySelector('.date-nav');
+        const weatherCards = document.getElementById('weatherCards');
+        
+        // 同步滚动函数
+        function syncScroll() {
+            const dateNavScrollWidth = dateNav.scrollWidth - dateNav.clientWidth;
+            const weatherScrollWidth = weatherCards.scrollWidth - weatherCards.clientWidth;
+            
+            if (dateNavScrollWidth > 0 && weatherScrollWidth > 0) {
+                const scrollRatio = weatherScrollWidth / dateNavScrollWidth;
+                weatherCards.scrollLeft = dateNav.scrollLeft * scrollRatio;
+            }
+        }
+        
+        // 鼠标滚轮横向滑动
+        dateNav.addEventListener('wheel', (evt) => {
+            evt.preventDefault();
+            dateNav.scrollLeft += evt.deltaY;
+            syncScroll();
+        });
+        
+        // 拖动滚动同步
+        let isScrolling = false;
+        dateNav.addEventListener('scroll', () => {
+            if (!isScrolling) {
+                isScrolling = true;
+                syncScroll();
+                setTimeout(() => isScrolling = false, 50);
+            }
+        });
+        
+        // 初始化时同步一次
+        window.addEventListener('load', syncScroll);
+        window.addEventListener('resize', syncScroll);
+
+        document.getElementById('zoomIn').addEventListener('click', () => map.zoomIn());
+        document.getElementById('zoomOut').addEventListener('click', () => map.zoomOut());
+        document.getElementById('resetView').addEventListener('click', () => {
+            const activeDay = document.querySelector('.date-item.active').getAttribute('data-day');
+            showDayRoute(activeDay);
+        });
+
+        function toggleMap(showMap) {
+            const itineraryPanel = document.querySelector('.itinerary-panel');
+            const mapPanel = document.querySelector('.map-panel');
+            const mapToggleBtn = document.getElementById('mapToggle');
+
+            if (showMap) {
+                itineraryPanel.classList.add('hidden');
+                mapPanel.classList.add('fullscreen');
+                mapToggleBtn.innerHTML = '📝 显示行程';
+                mapToggleBtn.setAttribute('aria-expanded', 'true');
+                setTimeout(() => map.invalidateSize(), 300);
+            } else {
+                itineraryPanel.classList.remove('hidden');
+                mapPanel.classList.remove('fullscreen');
+                mapToggleBtn.innerHTML = '🗺️ 显示地图';
+                mapToggleBtn.setAttribute('aria-expanded', 'false');
+            }
+        }
+
+        document.getElementById('mapToggle').addEventListener('click', function() {
+            const mapPanel = document.querySelector('.map-panel');
+            if (mapPanel.classList.contains('fullscreen')) { toggleMap(false); } 
+            else { toggleMap(true); }
+        });
+        
+        if (window.innerWidth <= 768) {
+            document.getElementById('mapToggle').innerHTML = '🗺️ 显示地图';
+        }
+
+        document.querySelectorAll('.location-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                // 防止默认行为和事件冒泡
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const locationName = this.getAttribute('data-location');
+                
+                // 1. 尝试复制文本到剪贴板
+                try {
+                    const textToCopy = this.innerText;
+                    navigator.clipboard.writeText(textToCopy).then(() => {
+                        const toast = document.getElementById('copyToast');
+                        toast.innerText = `已复制: ${textToCopy}`;
+                        toast.classList.add('show');
+                        setTimeout(() => toast.classList.remove('show'), 2000);
+                    }).catch(err => console.log('复制失败:', err));
+                } catch (err) {
+                    console.log('当前环境不支持剪贴板API');
+                }
+
+                // 2. 地图定位逻辑
+                const activeDay = document.querySelector('.date-item.active').getAttribute('data-day');
+                const route = dayRoutes[activeDay];
+                
+                if (window.innerWidth <= 768) { toggleMap(true); }
+
+                if (route && route.points) {
+                    let foundPoint = route.points.find(p => p.name === locationName) || 
+                                     route.points.find(p => p.name.includes(locationName) || locationName.includes(p.name));
+                    
+                    if (foundPoint) {
+                        const flyDuration = (window.innerWidth <= 768) ? 1.0 : 1.5;
+                        map.flyTo(foundPoint.coords, 16, { animate: true, duration: flyDuration });
+                        
+                        currentRouteLayer.eachLayer(layer => {
+                            if (layer instanceof L.Marker) {
+                                const latLng = layer.getLatLng();
+                                if (latLng.lat === foundPoint.coords[0] && latLng.lng === foundPoint.coords[1]) {
+                                    setTimeout(() => layer.openPopup(), flyDuration * 1000);
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+        });
+
+        L.control.scale({imperial: false}).addTo(map);
+    </script>
+</body>
+</html>
